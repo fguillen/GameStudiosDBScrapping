@@ -1,12 +1,17 @@
 require "open-uri"
 require "watir"
 require "webdrivers"
+require "json"
+require "fileutils"
+
 
 class GameStudiosDBScrapper
   URL = "http://www.gamespain.es/explorar/"
+  RESULTS_FOLDER = "#{__dir__}/results"
 
   def run
-    Watir.default_timeout = 90000
+    Watir.default_timeout = 10
+    FileUtils.mkdir_p(RESULTS_FOLDER)
 
     # Load the page
     puts ("Step: Load the page")
@@ -14,7 +19,7 @@ class GameStudiosDBScrapper
     browser.goto(URL)
 
     # Click cookie popup
-    puts ("Step: Click cookie popip")
+    puts ("Step: Click cookie popup")
     browser_element = browser.element(css: "#cn-accept-cookie").wait_until(timeout: 10, &:present?)
     browser_element.click
 
@@ -46,10 +51,10 @@ class GameStudiosDBScrapper
       break unless next_page
     end
 
-    puts "XXXXX"
-    puts results
+    File.open("#{RESULTS_FOLDER}/results.json", "w") do |f|
+      f.write JSON.pretty_generate results
+    end
   end
-
 
   def scrap_page(browser)
     results = []
@@ -59,11 +64,11 @@ class GameStudiosDBScrapper
     sleep(5)
 
     # Get elements
-    puts ("Step: Wait for block visble")
-    browser.element(css: ".lf-item-info-2").wait_until(timeout: 10, &:present?)
+    puts ("Step: Wait for block visible")
+    browser.element(css: ".lf-item").wait_until(timeout: 10, &:present?)
 
     puts ("Step: Get blocks")
-    blocks = browser.elements(css: ".lf-item-info-2")
+    blocks = browser.elements(css: ".lf-item")
 
     blocks.each do |block|
       results.push(scrap_info_block(block))
@@ -79,10 +84,10 @@ class GameStudiosDBScrapper
 
     name_1 = block.element(css: "h4").text if block.element(css: "h4").present?
     name_2 = block.element(css: "h6").text if block.element(css: "h6").present?
+    website = block.element(css: ".lf-head-btn a:last-child").text if block.element(css: ".lf-head-btn a:last-child").present?
 
     telephone = nil
     email = nil
-    domain = nil
 
     contacts = block.elements(css: ".lf-contact li")
     contacts.each do |contact|
@@ -93,22 +98,49 @@ class GameStudiosDBScrapper
 
       if(contact.element(css: ".icon-email-heart").exists?)
         email = contact.text_content.strip
-        domain = email.split("@")[1]
       end
     end
+
+    screenshot_file = screenshot(website)
 
     info_card = {
       "name_1" => name_1,
       "name_2" => name_2,
       "telephone" => telephone,
       "email" => email,
-      "domain" => domain
+      "website" => website,
+      "screenshot" => screenshot_file
     }
 
     puts "----"
     puts info_card
 
     info_card
+  end
+
+  def screenshot(url)
+    puts "screenshot(#{url})"
+
+    file_name = url.gsub(/\W/, "-") + ".png"
+    file_path = "#{RESULTS_FOLDER}/#{file_name}"
+
+    thread = Thread.new { Screenshot.shot(url, file_path) }
+    thread.join
+
+    file_name
+  rescue Selenium::WebDriver::Error::WebDriverError => e
+    puts "Error trying to screenshot #{url}"
+    "error"
+  end
+end
+
+class Screenshot
+  def self.shot(url, path)
+    browser = Watir::Browser.new(:chrome)
+    browser.goto(url)
+    browser.screenshot.save(path)
+  ensure
+    browser.close
   end
 end
 
