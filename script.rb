@@ -3,7 +3,7 @@ require "watir"
 require "webdrivers"
 require "json"
 require "fileutils"
-
+require "csv"
 
 class GameStudiosDBScrapper
   URL = "http://www.gamespain.es/explorar/"
@@ -37,23 +37,31 @@ class GameStudiosDBScrapper
 
     loop do
       results += scrap_page(browser)
-
-      next_page = false
-
-      if(browser.element(css: ".c27-explore-pagination > nav > ul > li:last-child > a").present?)
-        next_page_element = browser.element(css: ".c27-explore-pagination > nav > ul > li:last-child > a")
-        if(next_page_element.text == "→")
-          next_page_element.click
-          next_page = true
-        end
+      if next_page_button = get_next_page_button(browser)
+        next_page_button.click
+      else
+        break
       end
-
-      break unless next_page
     end
 
     File.open("#{RESULTS_FOLDER}/results.json", "w") do |f|
       f.write JSON.pretty_generate results
     end
+
+    File.open("#{RESULTS_FOLDER}/results.csv", "w") do |f|
+      f.write Utils.array_of_hashes_to_csv results
+    end
+  end
+
+  def get_next_page_button(browser)
+    if(browser.element(css: ".c27-explore-pagination > nav > ul > li:last-child > a").present?)
+      next_page_element = browser.element(css: ".c27-explore-pagination > nav > ul > li:last-child > a")
+      if(next_page_element.text == "→")
+        return next_page_element
+      end
+    end
+
+    nil
   end
 
   def scrap_page(browser)
@@ -124,11 +132,10 @@ class GameStudiosDBScrapper
     file_name = url.gsub(/\W/, "-") + ".png"
     file_path = "#{RESULTS_FOLDER}/#{file_name}"
 
-    thread = Thread.new { Screenshot.shot(url, file_path) }
-    thread.join
+    Screenshot.shot(url, file_path)
 
     file_name
-  rescue Selenium::WebDriver::Error::WebDriverError => e
+  rescue Selenium::WebDriver::Error::WebDriverError, Net::ReadTimeout => e
     puts "Error trying to screenshot #{url}"
     "error"
   end
@@ -141,6 +148,15 @@ class Screenshot
     browser.screenshot.save(path)
   ensure
     browser.close
+  end
+end
+
+module Utils
+  def self.array_of_hashes_to_csv(array_of_hashes)
+    CSV.generate do |csv|
+      csv << array_of_hashes.first.keys
+      array_of_hashes.each { |hash| csv << hash.values }
+    end
   end
 end
 
