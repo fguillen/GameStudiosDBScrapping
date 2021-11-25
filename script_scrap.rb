@@ -37,11 +37,13 @@ class GameStudiosDBScrapper
 
     loop do
       results += scrap_page(browser)
-      if next_page_button = get_next_page_button(browser)
-        next_page_button.click
-      else
-        break
-      end
+      break
+
+      # if next_page_button = get_next_page_button(browser)
+      #   next_page_button.click
+      # else
+      #   break
+      # end
     end
 
     File.open("#{RESULTS_FOLDER}/results.json", "w") do |f|
@@ -51,6 +53,8 @@ class GameStudiosDBScrapper
     File.open("#{RESULTS_FOLDER}/results.csv", "w") do |f|
       f.write Utils.array_of_hashes_to_csv results
     end
+
+    puts "End of Script :)"
   end
 
   def get_next_page_button(browser)

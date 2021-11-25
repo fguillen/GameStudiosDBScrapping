@@ -2,16 +2,20 @@ GEM
   remote: https://rubygems.org/
   specs:
     childprocess (4.1.0)
+    dotenv (2.7.6)
     nokogiri (1.12.5-x86_64-darwin)
       racc (~> 1.4)
     racc (1.6.0)
     regexp_parser (2.1.1)
     rexml (3.2.5)
+    ruby_http_client (3.5.2)
     rubyzip (2.3.2)
     selenium-webdriver (4.1.0)
       childprocess (>= 0.5, < 5.0)
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2)
+    sendgrid-ruby (6.6.0)
+      ruby_http_client (~> 3.4)
     watir (7.1.0)
       regexp_parser (>= 1.2, < 3)
       selenium-webdriver (~> 4.0)
@@ -24,7 +28,9 @@ PLATFORMS
   x86_64-darwin-19
 
 DEPENDENCIES
+  dotenv
   nokogiri
+  sendgrid-ruby
   watir
   webdrivers (~> 5.0)
 
