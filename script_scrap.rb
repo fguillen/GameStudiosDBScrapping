@@ -37,13 +37,13 @@ class GameStudiosDBScrapper
 
     loop do
       results += scrap_page(browser)
-      break
+      # break
 
-      # if next_page_button = get_next_page_button(browser)
-      #   next_page_button.click
-      # else
-      #   break
-      # end
+      if next_page_button = get_next_page_button(browser)
+        next_page_button.click
+      else
+        break
+      end
     end
 
     File.open("#{RESULTS_FOLDER}/results.json", "w") do |f|
@@ -131,6 +131,7 @@ class GameStudiosDBScrapper
   end
 
   def screenshot(url)
+    return "no_screenshot"
     puts "screenshot(#{url})"
 
     file_name = url.gsub(/\W/, "-") + ".png"
